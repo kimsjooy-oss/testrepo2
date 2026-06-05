@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>제주 반딧불이 생태문화축제 2026</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r158/three.min.js"></script>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+<style>
+/* 🎨 디자인 시스템 및 전역 스타일 */
+:root {
+  --bg-dark: #020813;
+  --panel-glass: rgba(255, 255, 255, 0.04);
+  --accent-glow: #ffe95c;
+  --accent-mint: #5bc0be;
+  --border-white: rgba(255, 255, 255, 0.1);
+}
+
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Pretendard',sans-serif;}
+html{scroll-behavior:smooth;}
+body{overflow-x:hidden; color:#f5f5f5; background-color: var(--bg-dark);}
+
+/* 🌌 Fixed 3D 웹배경 */
+#bg-canvas {position:fixed; top:0; left:0; width:100%; height:100%; z-index:-1; pointer-events:none;}
+
+/* 🖲️ 마우스 트래킹 반딧불이 가이드 캐릭터 */
+#bandi-character {
+  position: fixed; 
+  top: 0; left: 0;
+  z-index: 2000; 
+  pointer-events: none; 
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transform: translate(-50%, -50%);
+}
+#bandi-character .bubble {
+  background: var(--accent-glow);
+  color: #020813;
+  font-weight: bold;
+  font-size: 0.85rem;
+  padding: 6px 14px;
+  border-radius: 20px;
+  box-shadow: 0 0 15px var(--accent-glow), 0 4px 10px rgba(0,0,0,0.5);
+  margin-bottom: 8px;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+#bandi-character .light-core {
+  width: 14px; height: 14px;
+  background: #fff;
+  border-radius: 50%;
+  box-shadow: 0 0 20px 6px var(--accent-glow), 0 0 40px 15px var(--accent-glow);
+  animation: pulse 1.5s infinite alternate ease-in-out;
+}
+@keyframes pulse {
+  0% { transform: scale(0.8); opacity: 0.6; box-shadow: 0 0 15px 4px var(--accent-glow); }
+  100% { transform: scale(1.2); opacity: 1; box-shadow: 0 0 25px 10px var(--accent-glow); }
+}
+
+/* 🏢 네비게이션 헤더 */
+header {position:fixed; top:0; width:100%; background:rgba(2, 8, 19, 0.4); backdrop-filter:blur(15px); padding:20px; z-index:100; border-bottom: 1px solid var(--border-white);}
+nav {display:flex; justify-content:center; gap:40px;}
+nav a {color:white; text-decoration:none; font-weight:600; font-size:1.05rem; transition: color 0.3s;}
+nav a:hover {color: var(--accent-glow);}
+
+/* 🌟 히어로 섹션 */
+.hero {height:100vh; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; padding:20px; position:relative;}
+.hero h1 {font-size:4.5rem; margin-bottom:20px; font-weight:800; line-height:1.2;}
+.hero p {font-size:1.3rem; max-width:700px; line-height:1.7; color:#cbd5e1;}
+.glow {color: var(--accent-glow); text-shadow:0 0 10px var(--accent-glow), 0 0 20px var(--accent-glow);}
+.logo-area {margin-bottom:20px; animation: float 3s infinite ease-in-out;}
+@keyframes float { 0%,100%{transform:translateY(0);} 50%{transform:translateY(-15px);} }
+
+/* 📦 섹션 공통 */
+.section {padding:140px 12%; position:relative; min-height:80vh; display:flex; flex-direction:column; justify-content:center;}
+.section h2 {font-size:2.5rem; font-weight:700; margin-bottom:40px; position:relative; display:inline-block;}
+.section h2::after {content:''; position:absolute; bottom:-10px; left:0; width:50px; height:4px; background:var(--accent-glow); border-radius:2px;}
+
+/* 🎴 3D 입체 다크 카드 레이아웃 */
+.card {
+  background: var(--panel-glass); 
+  padding: 40px; 
+  border-radius: 24px; 
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--border-white);
+  box-shadow: 0 15px 35px rgba(0,0,0,0.4), inset 0 1px 1px rgba(255,255,255,0.1);
+}
+
+/* 📊 메인 그리드 및 티어 아이템 */
+.grid-3 {display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:30px; margin-top:20px;}
+.program-card {
+  background: var(--panel-glass);
+  border-radius: 20px;
+  overflow: hidden;
+  border: 1px solid var(--border-white);
+  box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+  transition: transform 0.3s ease, border-color 0.3s ease;
+}
+.program-card:hover {
+  transform: translateY(-8px);
+  border-color: var(--accent-glow);
+}
+.program-img {width:100%; height:200px; background-size:cover; background-position:center; position:relative;}
+.program-info {padding:25px;}
+.program-info h3 {font-size:1.35rem; margin-bottom:10px; color:#fff;}
+.program-info p {font-size:0.95rem; color:#94a3b8; line-height:1.5;}
+
+/* 📅 일정 테이블 구조 */
+.day-box {background:rgba(255,255,255,0.02); border: 1px solid var(--border-white); padding:30px; border-radius:16px;}
+.day-box h3 {color: var(--accent-glow); font-size:1.5rem; margin-bottom:15px; display:flex; align-items:center; gap:10px;}
+.day-box ul {list-style:none;}
+.day-box li {margin-bottom:12px; font-size:1.05rem; display:flex; align-items:center; gap:8px; color:#cbd5e1;}
+.day-box li::before {content:'•'; color: var(--accent-mint); font-weight:bold;}
+
+/* 🔘 인터랙티브 버튼 */
+.btn {display:inline-block; margin-top:30px; padding:16px 40px; background: var(--accent-glow); color:#020813; font-weight:bold; font-size:1.1rem; border-radius:40px; text-decoration:none; transition: all 0.3s ease; border:none; cursor:pointer;}
+.btn:hover {transform: translateY(-3px); box-shadow: 0 8px 25px rgba(255,233,92,0.4); background:#fff;}
+
+/* 🗺️ 지도 및 인풋 */
+#map {width:100%; height:450px; border-radius:20px; margin-top:20px; border: 1px solid var(--border-white); box-shadow: 0 10px 30px rgba(0,0,0,0.5);}
+.form-group input {width:100%; padding:18px; margin-bottom:18px; background:rgba(0,0,0,0.3); border:1px solid var(--border-white); border-radius:12px; color:white; font-size:1rem;}
+.form-group input:focus {outline:none; border-color:var(--accent-glow);}
+
+footer {padding:60px; text-align:center; background:#01040a; color:#475569; border-top:1px solid var(--border-white); font-size:0.95rem;}
+
+@media(max-width:768px){ nav{gap:15px;} .hero h1{font-size:2.8rem;} #bandi-character{display:none;} }
+</style>
+</head>
+<body>
+
+<canvas id="bg-canvas"></canvas>
+
+<div id="bandi-character">
+  <div class="bubble" id="bandi-text">반디와 함께 가요 ✨</div>
+  <div class="light-core"></div>
+</div>
+
+<header>
+<nav>
+  <a href="#intro">행사소개</a>
+  <a href="#program">주요프로그램</a>
+  <a href="#schedule">2박3일일정</a>
+  <a href="#location">찾아오기</a>
+  <a href="#register">접수가기</a>
+</nav>
+</header>
+
+<section class="hero" id="hero">
+<div class="logo-area">
+  <svg width="120" height="120" viewBox="0 0 100 100">
+    <circle cx="50" cy="50" r="30" fill="url(#hero-light)" opacity="0.9">
+      <animate attributeName="r" values="25;35;25" dur="3s" repeatCount="indefinite"/>
+    </circle>
+    <defs>
+      <radialGradient id="hero-light"><stop offset="0%" stop-color="#fff"/><stop offset="100%" stop-color="#ffe95c"/></radialGradient>
+    </defs>
+  </svg>
+</div>
+<h1><span class="glow">제주 반딧불이</span><br>생태문화축제 2026</h1>
+<p>자연의 숨결이 숨 쉬는 청정 제주 한라생태숲에서 펼쳐지는<br>신비로운 야간 힐링 생태체험에 주무관님을 초대합니다.</p>
+<a href="#register" class="btn">지금 참가를 신청하세요</a>
+</section>
+
+<section id="intro" class="section" data-title="🌿 행사 소개">
+<h2>행사소개</h2>
+<div class="card">
+  <h3 style="font-size:1.8rem; margin-bottom:20px; color:var(--accent-glow);">청정 제주의 밤을 밝히는 친환경 생태 축제</h3>
+  <p style="font-size:1.15rem; color:#94a3b8; margin-bottom:30px; line-height:1.8;">
+    본 축제는 예산 1억 원을 전액 제주의 자연 가치 증진과 지속 가능한 ESG 관광 생태계 구축을 위해 편성하였습니다. 인공 광원을 최소화한 다크 스카이 정책 하에 환상적인 운문산반딧불이의 군무를 관찰할 수 있는 고격조 야간 탐방 프로세스를 지향합니다.
+  </p>
+  <div class="grid-3" style="margin-top:20px;">
+    <div style="background:rgba(255,255,255,0.02); padding:20px; border-radius:15px; border:1px solid rgba(255,255,255,0.05);">
+      <h4 style="color:#fff; margin-bottom:8px;"><i class="fa-solid fa-calendar-days" style="color:var(--accent-mint)"></i> 기간 및 정원</h4>
+      <p style="font-size:0.95rem;">2026.07.17 ~ 07.19 (2박3일) / 안전을 위한 선착순 500명 제한</p>
+    </div>
+    <div style="background:rgba(255,255,255,0.02); padding:20px; border-radius:15px; border:1px solid rgba(255,255,255,0.05);">
+      <h4 style="color:#fff; margin-bottom:8px;"><i class="fa-solid fa-layer-group" style="color:var(--accent-mint)"></i> 핵심 정책</h4>
+      <p style="font-size:0.95rem;">No 플라스틱, 탄소 배출 저감 셔틀라인 가동, 야생동물 보호 무소음 콘셉트</p>
+    </div>
+  </div>
+</div>
+</section>
+
+<section id="program" class="section" data-title="✨ 주요 프로그램">
+<h2>주요 프로그램 상세</h2>
+<div class="grid-3">
+  <div class="program-card">
+    <div class="program-img" style="background-image: linear-gradient(to bottom, rgba(0,0,0,0), rgba(2,8,19,0.9)), url('https://images.unsplash.com/photo-1502134249126-9f3755a50d78?auto=format&fit=crop&w=600&q=80');"></div>
+    <div class="program-info">
+      <h3>반딧불이 야간 탐사</h3>
+      <p>숲 해설사의 인솔 하에 1.5km 코스를 조명 없이 이동하며 밤하늘의 쏟아지는 별빛과 반딧불이를 온몸으로 경험하는 킬러 콘텐츠</p>
+    </div>
+  </div>
+  <div class="program-card">
+    <div class="program-img" style="background-image: linear-gradient(to bottom, rgba(0,0,0,0), rgba(2,8,19,0.9)), url('https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=600&q=80');"></div>
+    <div class="program-info">
+      <h3>한라생태숲 에코 아카데미</h3>
+      <p>낮 시간에 운영되는 주간 교감 세션으로, 곶자왈 고유의 식생 분포 학습 및 반딧불이 유충 서식 환경을 보존하는 과학 기초 세미나</p>
+    </div>
+  </div>
+  <div class="program-card">
+    <div class="program-img" style="background-image: linear-gradient(to bottom, rgba(0,0,0,0), rgba(2,8,19,0.9)), url('https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=600&q=80');"></div>
+    <div class="program-info">
+      <h3>사일런트 별빛 음악회</h3>
+      <p>주변 야생동물에게 소음 피해를 주지 않기 위해 참가자 전원 무선 헤드셋을 착용하고 감상하는 고요하고 감성적인 언플러그드 어쿠스틱 밤공연</p>
+    </div>
+  </div>
+</div>
+</section>
+
+<section id="schedule" class="section" data-title="📅 2박3일 일정">
+<h2>2박3일 상세일정</h2>
+<div class="grid-3">
+  <div class="day-box">
+    <h3><i class="fa-solid fa-moon"></i> 1일차 [빛의 조우]</h3>
+    <ul>
+      <li>15:00 ~ 한라생태숲 패스 발급 및 현장 입소</li>
+      <li>19:00 ~ 개막 오프닝 세레모니 및 점등 행사</li>
+      <li>20:00 ~ 야간 반딧불이 동선 탐사 (1회차)</li>
+    </ul>
+  </div>
+  <div class="day-box">
+    <h3><i class="fa-solid fa-seedling"></i> 2일차 [자연 고찰]</h3>
+    <ul>
+      <li>10:00 ~ 곶자왈 생태해설 심층 투어 코스</li>
+      <li>14:00 ~ 제주 삼나무 업사이클 키트 만들기</li>
+      <li>19:30 ~ 한여름 밤의 별빛 숲속 사일런트 콘서트</li>
+    </ul>
+  </div>
+  <div class="day-box">
+    <h3><i class="fa-solid fa-leaf"></i> 3일차 [그린 약속]</h3>
+    <ul>
+      <li>09:00 ~ 자연 보전 숲 정화 플로깅 챌린지</li>
+      <li>11:00 ~ 친환경 생태 사진전 시상 및 소감 교류</li>
+      <li>14:00 ~ 클로징 소통 및 공식 환송 퇴소</li>
+    </ul>
+  </div>
+</div>
+</section>
+
+<section id="location" class="section" data-title="📍 찾아오기">
+<h2>찾아오기</h2>
+<div class="card">
+  <p style="font-size:1.1rem; margin-bottom:15px;"><i class="fa-solid fa-location-dot" style="color:var(--accent-glow);"></i> <b>행사장소:</b> 제주특별자치도 제주시 516로 2596 (한라생태숲 일원)</p>
+  <p style="font-size:0.95rem; color:#94a3b8; margin-bottom:20px;"><i class="fa-solid fa-bus"></i> 탄소 발생 저감을 위해 축제 기간 동안 제주시청 / 서귀포시청에서 셔틀버스를 20분 간격으로 교차 운행합니다.</p>
+  <div id="map"></div>
+</div>
+</section>
+
+<section id="register" class="section" data-title="✍️ 접수가기">
+<h2>접수가기</h2>
+<div class="card" style="max-width:600px; margin: 0 auto; width:100%;">
+  <form onsubmit="event.preventDefault(); alert('정상적으로 예약 승인되었습니다. 제주에서 뵙겠습니다!');">
+    <div class="form-group">
+      <input type="text" placeholder="참가자 성명" required>
+      <input type="email" placeholder="이메일 주소" required>
+      <input type="tel" placeholder="연락처 (- 제외)" required>
+    </div>
+    <button type="submit" class="btn" style="width:100%; margin-top:10px;">친환경 생태문화축제 참가 신청</button>
+  </form>
+</div>
+</section>
+
+<footer>
+  <p>© 2026 제주특별자치도청 관광교류국 축제총괄팀. All 기획안 및 코드 By 한라봉 주무관</p>
+</footer>
+
+<script>
+/* ========================================================
+   1. Three.js: 입체적인 3D 밤하늘 별빛 입자 구현
+   ======================================================== */
+const canvas = document.getElementById("bg-canvas");
+const scene = new THREE.Scene();
+
+// 딥 네이비 제주 밤하늘 배경색과 공간감 안개 설정
+scene.background = new THREE.Color(0x020813);
+scene.fog = new THREE.FogExp2(0x020813, 0.007);
+
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+const renderer = new THREE.WebGLRenderer({canvas, alpha: false, antialias: true});
+renderer.setSize(window.innerWidth, window.innerHeight);
+camera.position.z = 80;
+
+// 1,500개의 밤하늘 입자 무리 배치
+const particleCount = 1500;
+const geometry = new THREE.BufferGeometry();
+const positions = [];
+
+for(let i=0; i<particleCount; i++) {
+  positions.push((Math.random() - 0.5) * 250, (Math.random() - 0.5) * 150, (Math.random() - 0.5) * 150);
+}
+geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+
+// 별빛 입자를 부드러운 발광 원형 텍스처로 드로잉
+const createStarTexture = () => {
+  const starCanvas = document.createElement('canvas');
+  starCanvas.width = 16; starCanvas.height = 16;
+  const ctx = starCanvas.getContext('2d');
+  const grad = ctx.createRadialGradient(8, 8, 0, 8, 8, 8);
+  grad.addColorStop(0, 'rgba(255,255,255,1)');
+  grad.addColorStop(0.3, 'rgba(255,233,92,1)');
+  grad.addColorStop(1, 'rgba(255,233,92,0)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, 16, 16);
+  return new THREE.CanvasTexture(starCanvas);
+};
+
+const material = new THREE.PointsMaterial({
+  size: 1.6,
+  map: createStarTexture(),
+  transparent: true,
+  opacity: 0.9,
+  blending: THREE.AdditiveBlending,
+  depthWrite: false
+});
+
+const starField = new THREE.Points(geometry, material);
+scene.add(starField);
+
+// 무한 렌더 루프를 활용해 은하수 정속 회전 운동 연출
+function renderFrame() {
+  requestAnimationFrame(renderFrame);
+  starField.rotation.y += 0.0004;
+  starField.rotation.x += 0.0002;
+  renderer.render(scene, camera);
+}
+renderFrame();
+
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+/* ========================================================
+   2. Leaflet: 축제 현장 다크 테마 공간 매핑
+   ======================================================== */
+const hallaCoord = [33.382, 126.558]; // 한라생태숲 좌표 지정
+const map = L.map('map', {scrollWheelZoom: false}).setView(hallaCoord, 14);
+
+// 전체 UI 야간 톤앤매너 매치를 위한 CartoDB 다크 매터 서브타일 도입
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+  attribution: '&copy; OpenStreetMap &copy; CartoDB'
+}).addTo(map);
+
+// 커스텀 네온 발광 핀 이펙트 디스플레이
+const customIcon = L.divIcon({
+  html: `<div style="background:var(--accent-glow); width:16px; height:16px; border-radius:50%; box-shadow:0 0 15px var(--accent-glow); border:2px solid #fff;"></div>`,
+  className: 'custom-pin',
+  iconSize: [16, 16]
+});
+L.marker(hallaCoord, {icon: customIcon}).addTo(map).bindPopup('<b>한라생태숲 일원</b><br>메인 축제 종합안내소').openPopup();
+
+/* ========================================================
+   3. 반딧불이 캐릭터 마우스 동적 트래킹 및 메뉴 텍스트 디렉팅
+   ======================================================== */
+const bandi = document.getElementById('bandi-character');
+const bandiText = document.getElementById('bandi-text');
+const sections = document.querySelectorAll('.section');
+
+let mouseX = window.innerWidth / 2, mouseY = window.innerHeight / 2;
+let currentX = mouseX, currentY = mouseY;
+
+window.addEventListener('mousemove', (e) => {
+  mouseX = e.clientX;
+  mouseY = e.clientY;
+});
+
+function trackBandi() {
+  // LERP 보간 계산식 적용으로 캐릭터가 부드러운 무빙으로 날아오는 가속도 구현
+  currentX += (mouseX - currentX) * 0.12;
+  currentY += (mouseY - currentY) * 0.12;
+  
+  // 마우스 우하단 측면에 정렬하여 메인 콘텐츠 마우스 픽 스크린 확보
+  bandi.style.left = `${currentX + 18}px`;
+  bandi.style.top = `${currentY + 18}px`;
+
+  let currentTargetLabel = "반디와 함께 가요 ✨";
+
+  // 현재 커서가 진입한 컴포넌트의 가이드라인 연동 연산
+  sections.forEach(sec => {
+    const box = sec.getBoundingClientRect();
+    if(mouseY >= box.top && mouseY <= box.bottom && mouseX >= box.left && mouseX <= box.right) {
+      const titleAttr = sec.getAttribute('data-title');
+      if(titleAttr) {
+        currentTargetLabel = titleAttr;
+      }
+    }
+  });
+
+  if(bandiText.innerText !== currentTargetLabel) {
+    bandiText.innerText = currentTargetLabel;
+  }
+
+  requestAnimationFrame(trackBandi);
+}
+requestAnimationFrame(trackBandi);
+</script>
+
+</body>
+</html>
